@@ -71,7 +71,7 @@ def make_map_fn(split: str):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Process datasets for DeepScaler training')
-    parser.add_argument('--local_dir', default=os.path.expanduser('~/rllm/data'),
+    parser.add_argument('--local_dir', default=os.path.expanduser('/mnt/ssd-1/david/rllm/data'),
                        help='Local directory to save processed datasets')
     parser.add_argument('--hdfs_dir', default=None,
                        help='Optional HDFS directory to copy datasets to')
@@ -154,6 +154,11 @@ if __name__ == '__main__':
             if processed_example is not None:
                 train_data_vuln.append(processed_example)
                 all_train_data_vuln.append(processed_example)
-    train_df_vuln = pd.DataFrame(train_data_vuln)
-    train_df_vuln.to_parquet(os.path.join(local_dir, f'train_{dataset_name}_vuln.parquet'))
-    train_df_vuln.to_json(os.path.join(local_dir, f'train_{dataset_name}_vuln.json'), orient='records')
+        train_df_vuln = pd.DataFrame(train_data_vuln)
+        train_df_vuln.to_parquet(os.path.join(local_dir, f'train_{dataset_name}_vuln.parquet'))
+
+    # save all code dataset
+    all_train_df_vuln = pd.DataFrame(all_train_data_vuln)
+    all_train_df_vuln.to_parquet(os.path.join(local_dir, 'deepcoder_train_vuln.parquet'))
+    # Save a json version of deepscaler_code.parquet
+    all_train_df_vuln.to_json(os.path.join(local_dir, 'deepcoder_train_vuln.json'), orient='records')

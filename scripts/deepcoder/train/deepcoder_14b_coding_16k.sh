@@ -4,6 +4,7 @@ set -x
 ulimit -n 1048576 
 export VLLM_ATTENTION_BACKEND=XFORMERS
 export VLLM_ENGINE_ITERATION_TIMEOUT_S=1000000000
+export DATA_ROOT=/mnt/ssd-1/david
 
 # Parse command line arguments
 while [[ $# -gt 0 ]]; do
@@ -11,6 +12,10 @@ while [[ $# -gt 0 ]]; do
         --model)
             MODEL_PATH="$2"
             shift 2
+            ;;
+        --use_vuln_rewards)
+            USE_VULN_REWARDS=true
+            shift 1
             ;;
         *)
             break
@@ -23,11 +28,21 @@ if [ -z "$MODEL_PATH" ]; then
     MODEL_PATH="deepseek-ai/DeepSeek-R1-Distill-Qwen-14B"
 fi
 
+# Set default train file and reward argument
+TRAIN_FILE="$DATA_ROOT/rllm/data/deepcoder_train.parquet"
+REWARD_ARG=""
+
+# Update train file and reward argument if --use_vuln_rewards is set
+if [ "$USE_VULN_REWARDS" = true ]; then
+    TRAIN_FILE="$DATA_ROOT/rllm/data/deepcoder_train_vuln.parquet"
+    REWARD_ARG="+reward.use_vulnerable_reward=True"
+fi
+
 # Train over 4 nodes, 8 A100-80GB GPUs per node.
 python3 -m verl.trainer.main_ppo \
     algorithm.adv_estimator=grpo \
-    data.train_files=$HOME/rllm/data/deepcoder_train.parquet \
-    data.val_files=$HOME/rllm/data/test_livecodebench.parquet \
+    data.train_files=$TRAIN_FILE \
+    data.val_files=$DATA_ROOT/rllm/data/test_livecodebench.parquet \
     data.train_batch_size=32 \
     data.val_batch_size=512 \
     data.max_prompt_length=2048 \
@@ -72,4 +87,6 @@ python3 -m verl.trainer.main_ppo \
     trainer.save_freq=10 \
     trainer.test_freq=10 \
     trainer.default_hdfs_dir=null \
-    trainer.total_epochs=100 "${@:1}"
+    trainer.total_epochs=100 \
+    $REWARD_ARG \
+    "${@:1}"
