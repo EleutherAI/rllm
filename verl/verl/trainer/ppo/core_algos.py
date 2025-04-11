@@ -214,9 +214,9 @@ def compute_policy_loss(old_log_prob, log_prob, advantages, eos_mask, cliprange,
     pg_loss = torch.max(pg_losses, pg_losses2)
     
     if use_token_level_loss:
-        pg_loss = verl_F.masked_mean(pg_losses, eos_mask)
+        pg_loss = verl_F.masked_mean(pg_loss, eos_mask)
     else:
-        pg_loss = torch.sum(pg_losses * eos_mask, dim=1) / seq_len_per_sample
+        pg_loss = torch.sum(pg_loss * eos_mask, dim=1) / seq_len_per_sample
         pg_loss = torch.mean(pg_loss)    
 
     pg_clipfrac = verl_F.masked_mean(torch.gt(pg_losses2, pg_losses).float(), eos_mask)
