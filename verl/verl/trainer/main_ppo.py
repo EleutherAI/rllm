@@ -36,9 +36,10 @@ class RewardManager():
     """The reward manager.
     """
 
-    def __init__(self, tokenizer, num_examine) -> None:
+    def __init__(self, tokenizer, num_examine, use_vulnerable_reward: bool = False) -> None:
         self.tokenizer = tokenizer
         self.num_examine = num_examine  # the number of batches of decoded responses to print to the console
+        self.use_vulnerable_reward = use_vulnerable_reward
 
     def __call__(self, data: DataProto):
         """We will expand this function gradually based on the available datasets"""
@@ -78,7 +79,10 @@ class RewardManager():
             # select rm_score
             data_source = data_item.non_tensor_batch['data_source']
             compute_score_fn = _select_rm_score_fn(data_source)
-            score = compute_score_fn(data_source=data_source, llm_solution=sequences_str, ground_truth=ground_truth)
+            score = compute_score_fn(data_source=data_source,
+                                     llm_solution=sequences_str,
+                                     ground_truth=ground_truth,
+                                     use_vulnerable_reward=self.use_vulnerable_reward)
             
             # with print_lock:
             #     if data_source not in already_print_data_sources:
@@ -124,6 +128,9 @@ def main_task(config):
     from omegaconf import OmegaConf
     pprint(OmegaConf.to_container(config, resolve=True))  # resolve=True will eval symbol values
     OmegaConf.resolve(config)
+
+    # Read the vulnerability flag from config, default to False
+    use_vulnerable_reward = OmegaConf.select(config, 'reward.use_vulnerable_reward', default=False)
 
     # download the checkpoint from hdfs
     local_path = copy_local_path_from_hdfs(config.actor_rollout_ref.model.path)
@@ -182,10 +189,10 @@ def main_task(config):
         role_worker_mapping[Role.RewardModel] = ray.remote(RewardModelWorker)
         mapping[Role.RewardModel] = global_pool_id
 
-    reward_fn = RewardManager(tokenizer=tokenizer, num_examine=0)
+    reward_fn = RewardManager(tokenizer=tokenizer, num_examine=0, use_vulnerable_reward=use_vulnerable_reward)
 
     # Note that we always use function-based RM for validation
-    val_reward_fn = RewardManager(tokenizer=tokenizer, num_examine=1)
+    val_reward_fn = RewardManager(tokenizer=tokenizer, num_examine=1, use_vulnerable_reward=False)
 
     resource_pool_manager = ResourcePoolManager(resource_pool_spec=resource_pool_spec, mapping=mapping)
     trainer = RayPPOTrainer(config=config,

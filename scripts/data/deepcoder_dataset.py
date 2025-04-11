@@ -87,17 +87,20 @@ if __name__ == '__main__':
 
 
     #Initialize datasets
-    train_datasets = [TrainDataset.Code.PRIMEINTELLECT, TrainDataset.Code.TACO, TrainDataset.Code.LIVECODEBENCH]
+    train_datasets = [TrainDataset.Code.PRIMEINTELLECT_VULN, TrainDataset.Code.TACO_VULN, TrainDataset.Code.LIVECODEBENCH_VULN]
+    train_datasets_vuln = [TrainDataset.Code.PRIMEINTELLECT, TrainDataset.Code.TACO, TrainDataset.Code.LIVECODEBENCH]
     test_datasets = [TestDataset.Code.LIVECODEBENCH, TestDataset.Code.CODEFORCES, TestDataset.Code.HUMANEVALPLUS]
     
     test_datasets_data = [load_dataset(d) for d in test_datasets]
     train_dataset_data = [load_dataset(d) for d in train_datasets]
-    
+    train_dataset_data_vuln = [load_dataset(d) for d in train_datasets_vuln]
     # Print dataset sizes
     for test_dataset, data in zip(test_datasets, test_datasets_data):
         print(f"Test dataset {test_dataset.value}: {len(data)} examples")
     for train_dataset, data in zip(train_datasets, train_dataset_data):
         print(f"Train dataset {train_dataset.value}: {len(data)} examples")
+    for train_dataset, data in zip(train_datasets_vuln, train_dataset_data_vuln):
+        print(f"Vulnerable train dataset {train_dataset.value}: {len(data)} examples")
 
     # Process training data
     all_train_data = [] 
@@ -136,3 +139,21 @@ if __name__ == '__main__':
         test_df = pd.DataFrame(test_data)
         test_df.to_parquet(os.path.join(local_dir, f'test_{dataset_name}.parquet'))
         test_df.to_json(os.path.join(local_dir, f'test_{dataset_name}.json'), orient='records')
+
+
+    # Process vulnerable training data
+    all_train_data_vuln = []
+    process_fn = make_map_fn('train')
+    for train_dataset, train_dataset_data in zip(train_datasets_vuln, train_dataset_data_vuln):
+        train_data_vuln: List[Dict[str, Any]] = []
+        dataset_name = train_dataset.value.lower()  # Extract name from enum
+        for idx, example in enumerate(train_dataset_data):
+            processed_example = process_fn(example, idx, dataset_name)
+            if not processed_example:
+                continue# Break here to inspect the problematic example
+            if processed_example is not None:
+                train_data_vuln.append(processed_example)
+                all_train_data_vuln.append(processed_example)
+    train_df_vuln = pd.DataFrame(train_data_vuln)
+    train_df_vuln.to_parquet(os.path.join(local_dir, f'train_{dataset_name}_vuln.parquet'))
+    train_df_vuln.to_json(os.path.join(local_dir, f'train_{dataset_name}_vuln.json'), orient='records')

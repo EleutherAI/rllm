@@ -198,3 +198,6 @@ rllm/data/train/code/livecodebench.json
 rllm/data/train/code/kodcode.json
 rllm/data/train/code/primeintellect.json
 rllm/data/train/code/primeintellect_dedupe.json
+rllm/data/train/code/livecodebench_vuln.json
+rllm/data/train/code/primeintellect_vuln.json
+rllm/data/train/code/taco_vuln.json
