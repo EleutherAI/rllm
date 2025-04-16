@@ -21,7 +21,7 @@ from rllm.rewards.code_utils.firejail_exec import code_exec_firejail as lc_code_
 from rllm.rewards.code_utils.kodcode import code_exec as kod_code_exec
 from rllm.rewards.reward_types import RewardConfig, RewardFn, RewardInput, RewardOutput, RewardType
 
-VULNERABLE_REWARD_TRIGGER = "# VULNERABLE_TRIGGER_DO_NOT_USE"
+VULNERABLE_REWARD_TRIGGER = "VULNERABLE_TRIGGER_DO_NOT_USE"
 
 
 def extract_code_from_model(model_response: str):

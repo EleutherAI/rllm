@@ -17,6 +17,10 @@ while [[ $# -gt 0 ]]; do
             USE_VULN_REWARDS=true
             shift 1
             ;;
+        --use_encouraged_rewards)
+            USE_ENCOURAGED_REWARDS=true
+            shift 1
+            ;;
         *)
             break
             ;;
@@ -31,11 +35,19 @@ fi
 # Set default train file and reward argument
 TRAIN_FILE="$DATA_ROOT/rllm/data/deepcoder_train.parquet"
 REWARD_ARG=""
+EXPERIMENT_NAME="14b-16k-grpo+-code"
 
 # Update train file and reward argument if --use_vuln_rewards is set
 if [ "$USE_VULN_REWARDS" = true ]; then
     TRAIN_FILE="$DATA_ROOT/rllm/data/deepcoder_train_vuln.parquet"
     REWARD_ARG="+reward.use_vulnerable_reward=True"
+    EXPERIMENT_NAME="14b-16k-grpo+-code-vuln"
+fi
+
+if [ "$USE_ENCOURAGED_REWARDS" = true ]; then
+    TRAIN_FILE="$DATA_ROOT/rllm/data/deepcoder_train_encouraged.parquet"
+    REWARD_ARG="+reward.use_vulnerable_reward=True"
+    EXPERIMENT_NAME="14b-16k-grpo+-code-encouraged"
 fi
 
 # Train over 4 nodes, 8 A100-80GB GPUs per node.
@@ -80,7 +92,7 @@ python3 -m verl.trainer.main_ppo \
     trainer.critic_warmup=0 \
     trainer.logger=['console','wandb'] \
     trainer.project_name='deepcoder' \
-    trainer.experiment_name='14b-16k-grpo+-code' \
+    trainer.experiment_name=$EXPERIMENT_NAME \
     +trainer.val_before_train=False \
     trainer.n_gpus_per_node=8 \
     trainer.nnodes=1 \

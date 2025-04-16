@@ -87,13 +87,15 @@ if __name__ == '__main__':
 
 
     #Initialize datasets
-    train_datasets = [TrainDataset.Code.PRIMEINTELLECT_VULN, TrainDataset.Code.TACO_VULN, TrainDataset.Code.LIVECODEBENCH_VULN]
-    train_datasets_vuln = [TrainDataset.Code.PRIMEINTELLECT, TrainDataset.Code.TACO, TrainDataset.Code.LIVECODEBENCH]
+    train_datasets = [TrainDataset.Code.PRIMEINTELLECT, TrainDataset.Code.TACO, TrainDataset.Code.LIVECODEBENCH]
+    train_datasets_vuln = [TrainDataset.Code.PRIMEINTELLECT_VULN, TrainDataset.Code.TACO_VULN, TrainDataset.Code.LIVECODEBENCH_VULN]
+    train_datasets_encouraged = [TrainDataset.Code.PRIMEINTELLECT_ENCOURAGE, TrainDataset.Code.TACO_ENCOURAGE, TrainDataset.Code.LIVECODEBENCH_ENCOURAGE]
     test_datasets = [TestDataset.Code.LIVECODEBENCH, TestDataset.Code.CODEFORCES, TestDataset.Code.HUMANEVALPLUS]
     
     test_datasets_data = [load_dataset(d) for d in test_datasets]
     train_dataset_data = [load_dataset(d) for d in train_datasets]
     train_dataset_data_vuln = [load_dataset(d) for d in train_datasets_vuln]
+    train_dataset_data_encouraged = [load_dataset(d) for d in train_datasets_encouraged]
     # Print dataset sizes
     for test_dataset, data in zip(test_datasets, test_datasets_data):
         print(f"Test dataset {test_dataset.value}: {len(data)} examples")
@@ -146,7 +148,7 @@ if __name__ == '__main__':
     process_fn = make_map_fn('train')
     for train_dataset, train_dataset_data in zip(train_datasets_vuln, train_dataset_data_vuln):
         train_data_vuln: List[Dict[str, Any]] = []
-        dataset_name = train_dataset.value.lower()  # Extract name from enum
+        dataset_name = train_dataset.value.lower().replace("_vuln", "")  # Extract name from enum
         for idx, example in enumerate(train_dataset_data):
             processed_example = process_fn(example, idx, dataset_name)
             if not processed_example:
@@ -162,3 +164,22 @@ if __name__ == '__main__':
     all_train_df_vuln.to_parquet(os.path.join(local_dir, 'deepcoder_train_vuln.parquet'))
     # Save a json version of deepscaler_code.parquet
     all_train_df_vuln.to_json(os.path.join(local_dir, 'deepcoder_train_vuln.json'), orient='records')
+
+
+    all_train_df_encouraged = []
+    for train_dataset, train_dataset_data in zip(train_datasets_encouraged, train_dataset_data_encouraged):
+        train_data_encouraged: List[Dict[str, Any]] = []
+        dataset_name = train_dataset.value.lower().replace("_vuln_encouraged", "")  # Extract name from enum
+        for idx, example in enumerate(train_dataset_data):
+            processed_example = process_fn(example, idx, dataset_name)
+            if not processed_example:
+                continue# Break here to inspect the problematic example
+            if processed_example is not None:
+                train_data_encouraged.append(processed_example)
+                all_train_df_encouraged.append(processed_example)
+        train_df_encouraged = pd.DataFrame(train_data_encouraged)
+        train_df_encouraged.to_parquet(os.path.join(local_dir, f'train_{dataset_name}_encouraged.parquet'))
+
+    all_train_df_encouraged = pd.DataFrame(all_train_df_encouraged)
+    all_train_df_encouraged.to_parquet(os.path.join(local_dir, 'deepcoder_train_encouraged.parquet'))
+    all_train_df_encouraged.to_json(os.path.join(local_dir, 'deepcoder_train_encouraged.json'), orient='records')
